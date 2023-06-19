@@ -1,0 +1,98 @@
+from datetime import date
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+from time import sleep
+import random
+import os
+import time
+
+
+def team_scraper(url):
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.63 Safari/537.36'
+    }
+
+    response = requests.get(url, headers=headers)
+    soup = BeautifulSoup(response.content, "html.parser")
+    
+    tables = soup.find_all("tbody")[0]
+    tables2 = tables.find_all('tr')
+
+    position_list = []
+    jersey_number_list = []
+    player_name_list = []
+    url_list = []
+    depth_chart_position_list = []
+    
+    for i in range(1,len(tables2)):
+        if len(tables2[i].find_all('td')) > 1:
+            for j in range(0,5):
+                if len(tables2[i].find_all('td')[0]) > 0:                
+                    position = tables2[i].find_all('td')[0].text
+                    position_list.append(position)
+                    #df['position'] = tables2[i].find_all('td')[0].text
+                    
+                    jersey_number =  tables2[i].find_all('td')[1+2*j].text        
+                    jersey_number_list.append(jersey_number)
+                    #df['jersey_number'] = tables2[i].find_all('td')[0+2*j].text                                                                                                                                                                                                                                                                                                                            
+                    
+                    player_name = tables2[i].find_all('td')[2+2*j].text
+                    player_name_list.append(player_name)
+                    #df['player_name'] = tables2[i].find_all('td')[0+2*j].text
+                    url_list.append(url)
+                    
+                    depth_chart_position_list.append(j+1)
+    
+    
+    data = {
+        'url': url_list,
+        'position': position_list,
+        'jersey number':jersey_number_list,
+        'player name': player_name_list,
+        'depth chart position':depth_chart_position_list
+    }
+    
+    # Create the DataFrame using the dictionary
+    df = pd.DataFrame(data)
+    df['date'] = date.today().strftime("%Y%m%d")
+    filename = 'ourlads depth charts 2023.csv'
+        if os.path.isfile(filename):
+        mode = 'a'
+        header= False# Append mode
+    else:
+        mode = 'x'
+        header=True# Exclusive creation mode
+        df.to_csv(filename, mode=mode,header=header, index=False)
+
+
+
+response = requests.get("https://www.ourlads.com/ncaa-football-depth-charts/")  # Replace with the URL of the website you want to scrape
+soup = BeautifulSoup(response.content, "html.parser")
+depth_chart_links = soup.find_all("a", text="Depth Chart")
+urls = [link.get("href") for link in depth_chart_links][1:-1]
+count = 0
+start_time = time.time()
+
+for url in urls:
+    print(count)
+    current_time = time.time()
+    average_time_per_iteration = (current_time - start_time) / (count + 1)
+    remaining_iterations = len(urls) - (count + 1)
+    estimated_remaining_time = average_time_per_iteration * remaining_iterations
+    print("Estimated Remaining Time:", estimated_remaining_time, "seconds")
+    print(url)
+    count +=1
+    print(str(count/len(urls)))
+    team_scraper('https://www.ourlads.com/ncaa-football-depth-charts/' + url)
+    sleep(random.uniform(3, 7))
+
+
+
+
+
+
+
+
+
+    
